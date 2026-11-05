@@ -1,0 +1,541 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lensora Camera</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #101116;
+  color: #f5f5f5;
+  font-family: Arial, sans-serif;
+}
+
+header {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 26px;
+  font-weight: bold;
+  letter-spacing: 3px;
+}
+
+.logo span {
+  color: #d8ff65;
+}
+
+.status {
+  color: #d8ff65;
+  font-size: 12px;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 15px;
+  padding: 15px;
+}
+
+.camera {
+  background: #050505;
+  border-radius: 18px;
+  min-height: 300px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+video {
+  width: 100%;
+  max-height: 75vh;
+  object-fit: contain;
+}
+
+#grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 33%, #ffffff55 33.3%, transparent 33.6%, transparent 66%, #ffffff55 66.3%, transparent 66.6%),
+    linear-gradient(0deg, transparent 33%, #ffffff55 33.3%, transparent 33.6%, transparent 66%, #ffffff55 66.3%, transparent 66.6%);
+}
+
+#placeholder {
+  position: absolute;
+  color: #aaa;
+  text-align: center;
+  padding: 20px;
+}
+
+.panel {
+  background: #1b1d24;
+  border: 1px solid #343741;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+h3 {
+  color: #d8ff65;
+  font-size: 12px;
+  letter-spacing: 2px;
+  margin-top: 0;
+}
+
+button, select {
+  background: #292c35;
+  border: 1px solid #414550;
+  color: white;
+  padding: 11px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: #d8ff65;
+}
+
+.primary {
+  background: #d8ff65;
+  color: #111;
+  font-weight: bold;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.row > * {
+  flex: 1;
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-bottom: 20px;
+}
+
+.preset {
+  font-size: 11px;
+  padding: 10px 4px;
+}
+
+.preset.active {
+  color: #d8ff65;
+  border-color: #d8ff65;
+}
+
+.field {
+  margin: 18px 0;
+}
+
+.field label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+output {
+  color: #d8ff65;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: #d8ff65;
+}
+
+.shutter-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 25px;
+  padding: 20px;
+}
+
+.shutter {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  border: 4px solid white;
+  padding: 5px;
+  background: transparent;
+}
+
+.shutter::after {
+  content: "";
+  display: block;
+  background: #d8ff65;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.gallery {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 10px;
+}
+
+.gallery img {
+  width: 85px;
+  height: 75px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+@media(max-width: 800px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+
+  .camera {
+    min-height: 250px;
+  }
+
+  .panel {
+    display: block;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div>
+    <div class="logo">LENS<span>ORA</span></div>
+    <small style="color:#999">A creative camera experience</small>
+  </div>
+  <div class="status" id="status">CAMERA OFFLINE</div>
+</header>
+
+<div class="container">
+
+  <section>
+    <div class="camera">
+      <video id="video" autoplay muted playsinline></video>
+      <div id="grid" hidden></div>
+      <div id="placeholder">
+        Allow camera access to start your live view.
+      </div>
+    </div>
+
+    <div class="shutter-area">
+      <button id="flip">↻</button>
+      <button class="shutter" id="capture" disabled></button>
+      <button id="timer">Timer: Off</button>
+    </div>
+
+    <div class="panel">
+      <h3>RECENT CAPTURES</h3>
+      <div class="gallery" id="gallery">
+        <small style="color:#999">Your photos will appear here.</small>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel">
+
+    <h3>CAMERA SETTINGS</h3>
+
+    <div class="row">
+      <button class="primary" id="start">Start Camera</button>
+      <button id="stop" disabled>Stop</button>
+    </div>
+
+    <div class="row">
+      <select id="quality">
+        <option value="1920">High Quality</option>
+        <option value="4096">Maximum Available</option>
+        <option value="1280">Standard</option>
+      </select>
+      <button id="gridBtn">Grid: Off</button>
+    </div>
+
+    <h3>COLOR PROFILES</h3>
+
+    <div class="presets">
+      <button class="preset active" data-preset="natural">Natural</button>
+      <button class="preset" data-preset="portrait">Portrait</button>
+      <button class="preset" data-preset="vivid">Vivid</button>
+      <button class="preset" data-preset="warm">Warm</button>
+      <button class="preset" data-preset="film">Soft Film</button>
+      <button class="preset" data-preset="mono">B&W</button>
+    </div>
+
+    <div class="field">
+      <label>Exposure <output id="exposureOut">0</output></label>
+      <input id="exposure" type="range" min="-50" max="50" value="0">
+    </div>
+
+    <div class="field">
+      <label>Contrast <output id="contrastOut">100%</output></label>
+      <input id="contrast" type="range" min="70" max="150" value="100">
+    </div>
+
+    <div class="field">
+      <label>Saturation <output id="saturationOut">100%</output></label>
+      <input id="saturation" type="range" min="0" max="160" value="100">
+    </div>
+
+    <div class="field">
+      <label>Warmth <output id="warmthOut">0</output></label>
+      <input id="warmth" type="range" min="-40" max="40" value="0">
+    </div>
+
+    <div class="field">
+      <label>Clarity <output id="clarityOut">0</output></label>
+      <input id="clarity" type="range" min="0" max="30" value="0">
+    </div>
+
+    <div class="row">
+      <button id="reset">Reset</button>
+      <button class="primary" id="save" disabled>Save Photo</button>
+    </div>
+
+  </aside>
+</div>
+
+<canvas id="canvas" hidden></canvas>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+let stream = null;
+let facing = "environment";
+let lastBlob = null;
+let timerSeconds = 0;
+
+const presets = {
+  natural: [0,100,100,0,0],
+  portrait: [5,94,94,8,3],
+  vivid: [2,115,130,2,8],
+  warm: [3,102,108,22,3],
+  film: [4,90,82,10,0],
+  mono: [0,112,0,0,5]
+};
+
+function value(id) {
+  return Number(document.getElementById(id).value);
+}
+
+function updateFilters() {
+  const e = value("exposure");
+  const c = value("contrast");
+  const s = value("saturation");
+  const w = value("warmth");
+
+  video.style.filter =
+    `brightness(${1 + e / 100})
+     contrast(${c}%)
+     saturate(${s}%)
+     sepia(${Math.max(0,w) / 100})
+     hue-rotate(${Math.min(0,w) * .45}deg)`;
+
+  document.getElementById("exposureOut").textContent = e;
+  document.getElementById("contrastOut").textContent = c + "%";
+  document.getElementById("saturationOut").textContent = s + "%";
+  document.getElementById("warmthOut").textContent = w;
+  document.getElementById("clarityOut").textContent = value("clarity");
+}
+
+["exposure","contrast","saturation","warmth","clarity"].forEach(id => {
+  document.getElementById(id).addEventListener("input", updateFilters);
+});
+
+document.querySelectorAll(".preset").forEach(button => {
+  button.addEventListener("click", () => {
+    const p = presets[button.dataset.preset];
+    ["exposure","contrast","saturation","warmth","clarity"].forEach((id,i) => {
+      document.getElementById(id).value = p[i];
+    });
+
+    document.querySelectorAll(".preset").forEach(b => b.classList.remove("active"));
+    button.classList.add("active");
+    updateFilters();
+  });
+});
+
+async function startCamera() {
+  try {
+    stopCamera();
+
+    const width = Number(document.getElementById("quality").value);
+
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: { ideal: facing },
+        width: { ideal: width },
+        height: { ideal: 1080 }
+      }
+    });
+
+    video.srcObject = stream;
+    await video.play();
+
+    document.getElementById("status").textContent = "CAMERA READY";
+    document.getElementById("status").style.color = "#d8ff65";
+    document.getElementById("placeholder").hidden = true;
+    document.getElementById("capture").disabled = false;
+    document.getElementById("start").disabled = true;
+    document.getElementById("stop").disabled = false;
+  } catch (error) {
+    document.getElementById("status").textContent = "CAMERA ERROR";
+    document.getElementById("placeholder").hidden = false;
+    document.getElementById("placeholder").textContent =
+      "Allow camera access. Use HTTPS to access the camera.";
+    console.error(error);
+  }
+}
+
+function stopCamera() {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+
+  video.srcObject = null;
+
+  document.getElementById("capture").disabled = true;
+  document.getElementById("start").disabled = false;
+  document.getElementById("stop").disabled = true;
+  document.getElementById("status").textContent = "CAMERA OFFLINE";
+}
+
+document.getElementById("start").onclick = startCamera;
+document.getElementById("stop").onclick = stopCamera;
+
+document.getElementById("flip").onclick = async () => {
+  facing = facing === "environment" ? "user" : "environment";
+  if (stream) await startCamera();
+};
+
+document.getElementById("gridBtn").onclick = () => {
+  const grid = document.getElementById("grid");
+  grid.hidden = !grid.hidden;
+  document.getElementById("gridBtn").textContent =
+    "Grid: " + (grid.hidden ? "Off" : "On");
+};
+
+document.getElementById("timer").onclick = () => {
+  timerSeconds = timerSeconds === 0 ? 3 : timerSeconds === 3 ? 10 : 0;
+  document.getElementById("timer").textContent =
+    "Timer: " + (timerSeconds ? timerSeconds + "s" : "Off");
+};
+
+function capturePhoto() {
+  if (!video.videoWidth) return;
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const e = value("exposure");
+  const c = value("contrast");
+  const s = value("saturation");
+  const w = value("warmth");
+
+  ctx.filter =
+    `brightness(${1 + e / 100})
+     contrast(${c}%)
+     saturate(${s}%)
+     sepia(${Math.max(0,w) / 100})
+     hue-rotate(${Math.min(0,w) * .45}deg)`;
+
+  if (facing === "user") {
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
+
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.filter = "none";
+
+  canvas.toBlob(blob => {
+    if (!blob) return;
+
+    lastBlob = blob;
+
+    const url = URL.createObjectURL(blob);
+    const gallery = document.getElementById("gallery");
+
+    if (gallery.querySelector("small")) gallery.innerHTML = "";
+
+    const image = document.createElement("img");
+    image.src = url;
+    image.alt = "Captured photo";
+    gallery.prepend(image);
+
+    document.getElementById("save").disabled = false;
+  }, "image/jpeg", 0.96);
+}
+
+document.getElementById("capture").onclick = () => {
+  if (!timerSeconds) {
+    capturePhoto();
+    return;
+  }
+
+  const button = document.getElementById("capture");
+  button.disabled = true;
+
+  let remaining = timerSeconds;
+
+  const interval = setInterval(() => {
+    remaining--;
+
+    if (remaining <= 0) {
+      clearInterval(interval);
+      button.disabled = false;
+      capturePhoto();
+    }
+  }, 1000);
+};
+
+document.getElementById("save").onclick = () => {
+  if (!lastBlob) return;
+
+  const url = URL.createObjectURL(lastBlob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "lensora-photo.jpg";
+  link.click();
+
+  URL.revokeObjectURL(url);
+};
+
+document.getElementById("reset").onclick = () => {
+  ["exposure","contrast","saturation","warmth","clarity"].forEach((id,i) => {
+    document.getElementById(id).value = [0,100,100,0,0][i];
+  });
+
+  updateFilters();
+};
+
+updateFilters();
+
+window.addEventListener("beforeunload", stopCamera);
+</script>
+
+</body>
+</html>
